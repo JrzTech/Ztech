@@ -356,7 +356,7 @@
         }
     </style>
     <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxVthjPE0zKk_C7JYp162CACXGPXSDfD-ENUihk3O4C5sxRV-g7CwKsNPYaQ8GEsr1Z/exec"; // URL del backend
+    const API_URL = "https://script.google.com/macros/s/AKfycbwK7ifELifBtIqbx990wHprG6k38BNJCHxZCb4BGWpVSFZ9Y_UrmZjG7WbUmMJtzzd1/exec"; // URL del backend
     
     function cargarNotas() {
         document.getElementById("notesGrid").innerHTML = `
@@ -368,14 +368,16 @@
 
         fetch(`${API_URL}?accion=obtenerNotas`, {
             method: 'GET',
-            mode: 'cors' // Asegúrate de que esté configurado en 'cors'
+            headers: { 'Content-Type': 'application/json' },
+            mode: 'cors'  // Esto especifica que se manejarán solicitudes CORS
         })
-            .then(response => response.json())
-            .then(data => mostrarNotas(data))
-            .catch(error => {
-                console.error("Error cargando notas:", error);
-                mostrarAlerta("Error al cargar notas.", "danger");
-            });
+        .then(response => response.json())
+        .then(data => mostrarNotas(data))
+        .catch(error => {
+            console.error("Error cargando notas:", error);
+            mostrarAlerta("Error al cargar notas.", "danger");
+        });
+
     }
 
     function agregarNota() {
