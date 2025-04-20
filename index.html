@@ -403,7 +403,9 @@
     const corsProxyUrl = "https://cors-anywhere.herokuapp.com/";
     // Alternativas: https://corsproxy.io/?, https://api.allorigins.win/raw?url=
     
-    fetch(corsProxyUrl + API_URL + "?accion=obtenerNotas")
+    const corsProxyUrl = "https://corsproxy.io/?";
+    const targetUrl = encodeURIComponent(`${API_URL}?accion=obtenerNotas`);
+    fetch(corsProxyUrl + targetUrl)
         .then(response => {
             if (!response.ok) {
                 throw new Error(`Error HTTP: ${response.status}`);
