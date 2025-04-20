@@ -356,7 +356,7 @@
         }
     </style>
     <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwbAYYFTQvM3GcT7GIhrkYlphxB9y1uZted6PqIeRv5I34cOqG8LYKYdRvl29Tojg-2/exec"; // URL del backend
+    const API_URL = "https://script.google.com/macros/s/AKfycbxYPJLqszlbWAe-1Vx0D3xO1lShBYvn-ptdpFli6jJkQE3Rob9HgzWcRO1dCjxVJfqZ/exec"; // Debe terminar en /exec
 
     // Añade esta función
     function verificarConexion() {
@@ -390,66 +390,62 @@
     }
         
     function cargarNotas() {
-        document.getElementById("notesGrid").innerHTML = `
-            <div class="loading">
-                <div class="spinner"><i class="fas fa-circle-notch fa-2x"></i></div>
-                <p>Cargando notas...</p>
-            </div>
-        `;
+    document.getElementById("notesGrid").innerHTML = `
+        <div class="loading">
+            <div class="spinner"><i class="fas fa-circle-notch fa-2x"></i></div>
+            <p>Cargando notas...</p>
+        </div>
+    `;
+
+    console.log("Intentando cargar notas desde:", API_URL);
     
-        // Usar un proxy CORS para evitar problemas de CORS
-        const corsProxyUrl = "https://corsproxy.io/?";
-        const targetUrl = encodeURIComponent(`${API_URL}?accion=obtenerNotas`);
-        
-        console.log("Intentando cargar notas a través de proxy CORS");
-        
-        fetch(corsProxyUrl + targetUrl)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.text();
-            })
-            .then(text => {
-                console.log("Respuesta recibida:", text.substring(0, 100) + "..."); // Mostrar los primeros 100 caracteres
+    // Usar CORS Anywhere como proxy
+    const corsProxyUrl = "https://cors-anywhere.herokuapp.com/";
+    // Alternativas: https://corsproxy.io/?, https://api.allorigins.win/raw?url=
+    
+    fetch(corsProxyUrl + API_URL + "?accion=obtenerNotas")
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
+            return response.text();
+        })
+        .then(text => {
+            console.log("Datos recibidos:", text.substring(0, 200)); // Mostrar primeros 200 caracteres
+            
+            try {
+                const data = JSON.parse(text);
+                mostrarNotas(data);
+            } catch (error) {
+                console.error("Error al parsear JSON:", error);
                 
-                try {
-                    // Intentar parsear como JSON
-                    const data = JSON.parse(text);
-                    mostrarNotas(data);
-                } catch (error) {
-                    console.error("Error al parsear JSON:", error);
-                    // Verificar si la respuesta contiene algún mensaje de error específico
-                    if (text.includes("error") || text.includes("Error")) {
-                        document.getElementById("notesGrid").innerHTML = `
-                            <div class="empty-state">
-                                <div class="empty-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                                <h3>Error del servidor</h3>
-                                <p>${text.substring(0, 200)}</p>
-                            </div>
-                        `;
-                    } else {
-                        document.getElementById("notesGrid").innerHTML = `
-                            <div class="empty-state">
-                                <div class="empty-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                                <h3>Error al procesar la respuesta</h3>
-                                <p>La respuesta del servidor no tiene el formato esperado</p>
-                            </div>
-                        `;
-                    }
-                }
-            })
-            .catch(error => {
-                console.error("Error en la solicitud:", error);
                 document.getElementById("notesGrid").innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                        <h3>Error de conexión</h3>
-                        <p>No se pudo conectar con el servidor de notas: ${error.message}</p>
+                        <h3>Error al procesar datos</h3>
+                        <p>La respuesta no es un JSON válido</p>
+                        <pre style="text-align: left; margin-top: 10px; font-size: 0.8rem; max-height: 200px; overflow: auto; background: #222; padding: 10px; border-radius: 5px;">${text.substring(0, 500)}...</pre>
                     </div>
                 `;
-            });
-    }
+            }
+        })
+        .catch(error => {
+            console.error("Error en fetch:", error);
+            
+            document.getElementById("notesGrid").innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <h3>Error de conexión</h3>
+                    <p>${error.message}</p>
+                    <div style="margin-top: 15px">
+                        <button onclick="cargarNotas()" class="btn-nueva-nota" style="max-width: 200px; margin: 0 auto;">
+                            <i class="fas fa-sync"></i> Reintentar
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+}
 
     function agregarNota() {
         let titulo = document.getElementById("titulo").value.trim();
