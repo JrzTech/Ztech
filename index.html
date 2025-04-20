@@ -428,10 +428,11 @@
 
         /* Loader de eliminación */
         .loader-container {
-            display: flex;
+            display: none;
             flex-direction: column;
             align-items: center;
             gap: 15px;
+            margin-top: 15px;
         }
 
         .loader {
@@ -463,6 +464,17 @@
             }
             100% {
                 transform: rotate(360deg);
+            }
+        }
+
+        @keyframes aparecer {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
         }
         
@@ -557,10 +569,13 @@
         <div class="modal-alerta">
             <h2>¿Eliminar esta nota?</h2>
             <p>Esta acción no se puede deshacer.</p>
-            <div id="modalContent">
+            <div id="modalButtons">
                 <button id="btnConfirmarEliminar" class="modal-btn modal-btn-yes">Sí, eliminar</button>
-                <br>
-                <button class="modal-btn modal-btn-no" onclick="cerrarModalEliminar()">Cancelar</button>
+                <button id="btnCancelarEliminar" class="modal-btn modal-btn-no">Cancelar</button>
+            </div>
+            <div id="modalLoader" class="loader-container">
+                <span class="loader"></span>
+                <p>Eliminando nota...</p>
             </div>
         </div>
     </div>
@@ -573,6 +588,10 @@
         // Cargar notas al iniciar
         document.addEventListener('DOMContentLoaded', () => {
             cargarNotas();
+            
+            // Configurar eventos de los botones del modal
+            document.getElementById('btnConfirmarEliminar').addEventListener('click', confirmarEliminacion);
+            document.getElementById('btnCancelarEliminar').addEventListener('click', cerrarModalEliminar);
         });
 
         function toggleForm() {
@@ -713,11 +732,12 @@
         function mostrarModalEliminar(id) {
             notaAEliminarId = id;
             const modal = document.getElementById('modalEliminar');
-            modal.classList.add('active');
             
-            // Configurar el botón de confirmación
-            const btnConfirmar = document.getElementById('btnConfirmarEliminar');
-            btnConfirmar.onclick = confirmarEliminacion;
+            // Mostrar botones y ocultar loader
+            document.getElementById('modalButtons').style.display = 'block';
+            document.getElementById('modalLoader').style.display = 'none';
+            
+            modal.classList.add('active');
         }
 
         // Función para cerrar el modal
@@ -734,14 +754,9 @@
                 return;
             }
 
-            // Mostrar loader
-            const modalContent = document.getElementById('modalContent');
-            modalContent.innerHTML = `
-                <div class="loader-container">
-                    <span class="loader"></span>
-                    <p>Eliminando nota...</p>
-                </div>
-            `;
+            // Mostrar loader y ocultar botones
+            document.getElementById('modalButtons').style.display = 'none';
+            document.getElementById('modalLoader').style.display = 'flex';
 
             try {
                 const response = await fetch(`${BACKEND_URL}?action=deleteNote&id=${notaAEliminarId}`);
