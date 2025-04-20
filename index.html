@@ -350,92 +350,6 @@
         .alerta.danger i {
             color: var(--danger);
         }
-
-        /* Modal de confirmación */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-
-        .modal-overlay.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-
-        .modal-alerta {
-            background: #2e0036;
-            border: 2px solid #7a2b8f;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 0 20px #7a2b8f88;
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-            animation: aparecer 0.4s ease-out;
-        }
-
-        .modal-alerta h2 {
-            color: #d88bff;
-            margin-bottom: 15px;
-        }
-
-        .modal-alerta p {
-            color: #ccc;
-            margin-bottom: 25px;
-        }
-
-        .modal-btn {
-            padding: 10px 20px;
-            margin: 0 10px;
-            border: none;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 0.95rem;
-            transition: background 0.3s, transform 0.2s;
-        }
-
-        .modal-btn-yes {
-            background-color: #a347e4;
-            color: white;
-        }
-
-        .modal-btn-yes:hover {
-            background-color: #912ed9;
-            transform: scale(1.05);
-        }
-
-        .modal-btn-no {
-            background-color: #444;
-            color: #ddd;
-        }
-
-        .modal-btn-no:hover {
-            background-color: #666;
-            transform: scale(1.05);
-        }
-
-        @keyframes aparecer {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
         
         /* Responsive design */
         @media (max-width: 768px) {
@@ -523,21 +437,10 @@
         </div>
     </div>
 
-    <!-- Modal de confirmación de eliminación -->
-    <div id="modalEliminar" class="modal-overlay">
-        <div class="modal-alerta">
-            <h2>¿Eliminar esta nota?</h2>
-            <p>Esta acción no se puede deshacer.</p>
-            <button id="btnConfirmarEliminar" class="modal-btn modal-btn-yes">Sí, eliminar</button>
-            <button class="modal-btn modal-btn-no" onclick="cerrarModalEliminar()">Cancelar</button>
-        </div>
-    </div>
-
     <script>
-        // Variables globales
+        // Reemplaza con tu URL de Google Apps Script
         const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbz_U5c2RRg5XhA50fcf6jxYXYcA-L_WLpFQtYKjatCyxi5VhmqS-L62FEBrQGdPOuNr/exec';
-        let notaAEliminarId = null;
-
+        
         // Cargar notas al iniciar
         document.addEventListener('DOMContentLoaded', () => {
             cargarNotas();
@@ -625,7 +528,7 @@
                         </div>
                     </div>
                     <div class="note-actions">
-                        <button class="btn-delete" onclick="mostrarModalEliminar('${nota.id}')">
+                        <button class="btn-delete" onclick="eliminarNota('${nota.id}')">
                             <i class="fas fa-trash"></i> Eliminar
                         </button>
                     </div>
@@ -677,33 +580,13 @@
             }
         }
 
-        // Función para mostrar el modal de eliminación
-        function mostrarModalEliminar(id) {
-            notaAEliminarId = id;
-            const modal = document.getElementById('modalEliminar');
-            modal.classList.add('active');
-            
-            // Configurar el botón de confirmación
-            const btnConfirmar = document.getElementById('btnConfirmarEliminar');
-            btnConfirmar.onclick = confirmarEliminacion;
-        }
-
-        // Función para cerrar el modal
-        function cerrarModalEliminar() {
-            const modal = document.getElementById('modalEliminar');
-            modal.classList.remove('active');
-            notaAEliminarId = null;
-        }
-
-        // Función para confirmar la eliminación
-        async function confirmarEliminacion() {
-            if (!notaAEliminarId) {
-                cerrarModalEliminar();
+        async function eliminarNota(id) {
+            if (!confirm('¿Estás seguro de que quieres eliminar esta nota?')) {
                 return;
             }
 
             try {
-                const response = await fetch(`${BACKEND_URL}?action=deleteNote&id=${notaAEliminarId}`);
+                const response = await fetch(`${BACKEND_URL}?action=deleteNote&id=${id}`);
                 const result = await response.json();
                 
                 if (result.success) {
@@ -714,8 +597,6 @@
                 }
             } catch (error) {
                 mostrarAlerta("Error de conexión: " + error.message, "danger");
-            } finally {
-                cerrarModalEliminar();
             }
         }
 
