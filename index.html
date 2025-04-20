@@ -2,17 +2,38 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Mi Web App</title>
+  <title>Web con GAS</title>
   <style>
-    iframe {
-      width: 100%;
-      height: 90vh;
-      border: none;
-    }
+    body { font-family: sans-serif; padding: 2rem; }
+    input, button { margin-top: 10px; padding: 0.5rem; font-size: 1rem; }
   </style>
 </head>
 <body>
-  <h1>Mi Web App</h1>
-  <iframe src="https://script.google.com/macros/s/AKfycbwWWeWh5OkSSOaOaPYljm-bStOoOX_P56vwheV9yf6oEyqonm68zQEIl5HvS1b3HwrI/exec"></iframe>
+  <h1>Conexión con Google Apps Script</h1>
+
+  <label for="mensaje">Escribe algo:</label><br>
+  <input type="text" id="mensaje" placeholder="Ej: Hola mundo"><br>
+  <button onclick="enviarMensaje()">Enviar</button>
+
+  <h3>Respuesta de GAS:</h3>
+  <div id="respuesta">Esperando...</div>
+
+  <script>
+    const URL_GAS = "https://script.google.com/macros/s/AKfycbzi12hKmPwZDKsXGRV6XTq7IslJ1g-KwDQ9ool74v_iYTaHN4iDWv7g985UOcd15Wt4/exec"; // reemplaza con tu URL real
+
+    function enviarMensaje() {
+      const mensaje = document.getElementById("mensaje").value;
+      const url = `${URL_GAS}?mensaje=${encodeURIComponent(mensaje)}`;
+
+      fetch(url)
+        .then(res => res.text())
+        .then(data => {
+          document.getElementById("respuesta").textContent = data;
+        })
+        .catch(err => {
+          document.getElementById("respuesta").textContent = "Error: " + err;
+        });
+    }
+  </script>
 </body>
 </html>
