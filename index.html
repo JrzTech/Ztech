@@ -367,16 +367,22 @@
         `;
 
         fetch(`${API_URL}?accion=obtenerNotas`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-            mode: 'cors'  // Esto especifica que se manejarán solicitudes CORS
+          method: 'GET',
+          mode: 'no-cors'  // Agregar el modo 'no-cors' a la solicitud
         })
-        .then(response => response.json())
-        .then(data => mostrarNotas(data))
+        .then(response => {
+          console.log(response);
+          return response.text();  // O response.json() si no es opaca
+        })
+        .then(data => {
+          console.log(data);
+          mostrarNotas(data);
+        })
         .catch(error => {
-            console.error("Error cargando notas:", error);
-            mostrarAlerta("Error al cargar notas.", "danger");
+          console.error("Error cargando notas:", error);
+          mostrarAlerta("Error al cargar notas.", "danger");
         });
+
 
     }
 
