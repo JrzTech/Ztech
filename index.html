@@ -355,252 +355,177 @@
             }
         }
     </style>
-    <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxYPJLqszlbWAe-1Vx0D3xO1lShBYvn-ptdpFli6jJkQE3Rob9HgzWcRO1dCjxVJfqZ/exec"; // Debe terminar en /exec
-
-    // Añade esta función
-    function verificarConexion() {
-        console.log("Verificando conexión con el servidor...");
+<script>
+    function toggleForm() {
+        const formContainer = document.getElementById("noteFormContainer");
+        formContainer.classList.toggle("active");
         
-        const corsProxyUrl = "https://corsproxy.io/?";
-        const targetUrl = encodeURIComponent(`${API_URL}?accion=verificarAcceso`);
+        const btnText = document.getElementById("btnNuevaNotaText");
+        const btnIcon = document.getElementById("btnNuevaNotaIcon");
         
-        fetch(corsProxyUrl + targetUrl)
-            .then(response => response.text())
-            .then(text => {
-                console.log("Respuesta de verificación:", text);
-                try {
-                    const data = JSON.parse(text);
-                    if (data.acceso === "ok") {
-                        console.log("Conexión exitosa con el servidor. Información:", data);
-                        mostrarAlerta("Conexión con el servidor verificada correctamente", "success");
-                    } else {
-                        console.error("Error de acceso:", data.error);
-                        mostrarAlerta("Error de acceso al servidor: " + data.error, "danger");
-                    }
-                } catch (error) {
-                    console.error("Error al parsear respuesta:", error);
-                    mostrarAlerta("Error al procesar la respuesta del servidor", "danger");
-                }
-            })
-            .catch(error => {
-                console.error("Error de conexión:", error);
-                mostrarAlerta("No se pudo conectar con el servidor: " + error.message, "danger");
-            });
+        if (formContainer.classList.contains("active")) {
+            btnText.textContent = "Cancelar";
+            btnIcon.className = "fas fa-times";
+            document.getElementById("titulo").focus();
+        } else {
+            btnText.textContent = "Nueva Nota";
+            btnIcon.className = "fas fa-plus";
+        }
     }
-        
-    function cargarNotas() {
-    document.getElementById("notesGrid").innerHTML = `
-        <div class="loading">
-            <div class="spinner"><i class="fas fa-circle-notch fa-2x"></i></div>
-            <p>Cargando notas...</p>
-        </div>
-    `;
 
-    console.log("Intentando cargar notas desde:", API_URL);
-    
-    // Usar CORS Anywhere como proxy
-    const corsProxyUrl = "https://cors-anywhere.herokuapp.com/";
-    // Alternativas: https://corsproxy.io/?, https://api.allorigins.win/raw?url=
-    
-    const corsProxyUrl = "https://corsproxy.io/?";
-    const targetUrl = encodeURIComponent(`${API_URL}?accion=obtenerNotas`);
-    fetch(corsProxyUrl + targetUrl)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Error HTTP: ${response.status}`);
-            }
-            return response.text();
-        })
-        .then(text => {
-            console.log("Datos recibidos:", text.substring(0, 200)); // Mostrar primeros 200 caracteres
-            
-            try {
-                const data = JSON.parse(text);
-                mostrarNotas(data);
-            } catch (error) {
-                console.error("Error al parsear JSON:", error);
-                
-                document.getElementById("notesGrid").innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                        <h3>Error al procesar datos</h3>
-                        <p>La respuesta no es un JSON válido</p>
-                        <pre style="text-align: left; margin-top: 10px; font-size: 0.8rem; max-height: 200px; overflow: auto; background: #222; padding: 10px; border-radius: 5px;">${text.substring(0, 500)}...</pre>
-                    </div>
-                `;
-            }
-        })
-        .catch(error => {
-            console.error("Error en fetch:", error);
-            
-            document.getElementById("notesGrid").innerHTML = `
+    function cargarNotas() {
+        document.getElementById("notesGrid").innerHTML = `
+            <div class="loading">
+                <div class="spinner"><i class="fas fa-circle-notch fa-2x"></i></div>
+                <p>Cargando notas...</p>
+            </div>
+        `;
+        fetch('https://script.google.com/macros/s/AKfycbwWWeWh5OkSSOaOaPYljm-bStOoOX_P56vwheV9yf6oEyqonm68zQEIl5HvS1b3HwrI/exec?action=obtenerNotas')
+            .then(res => res.json())
+            .then(mostrarNotas)
+            .catch(err => mostrarAlerta("Error al cargar las notas.", "danger"));
+    }
+
+    function mostrarNotas(data) {
+        let grid = document.getElementById("notesGrid");
+        grid.innerHTML = "";
+
+        if (data.length === 0) {
+            grid.innerHTML = `
                 <div class="empty-state">
-                    <div class="empty-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                    <h3>Error de conexión</h3>
-                    <p>${error.message}</p>
-                    <div style="margin-top: 15px">
-                        <button onclick="cargarNotas()" class="btn-nueva-nota" style="max-width: 200px; margin: 0 auto;">
-                            <i class="fas fa-sync"></i> Reintentar
-                        </button>
+                    <div class="empty-icon"><i class="fas fa-sticky-note"></i></div>
+                    <p>No hay notas disponibles</p>
+                    <p>Agrega tu primera nota usando el botón "Nueva Nota"</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Ordenar por fecha, más reciente primero
+        data.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+        data.forEach(nota => {
+            let fechaObj = new Date(nota.fecha);
+            let fechaFormateada = formatearFecha(fechaObj);
+
+            let card = document.createElement("div");
+            card.className = "note-card";
+            card.innerHTML = `
+                <div class="note-card-header">
+                    <h3 class="note-title">${escapeHtml(nota.titulo)}</h3>
+                    <div class="note-date">
+                        <i class="far fa-calendar-alt"></i>
+                        ${fechaFormateada}
+                    </div>
+                </div>
+                <div class="note-content">
+                    <div class="note-description">
+                        <div class="note-label">Descripción</div>
+                        <p>${escapeHtml(nota.descripcion)}</p>
+                    </div>
+                    <div class="note-comment">
+                        <div class="note-label">Comentario</div>
+                        <p>${escapeHtml(nota.comentario)}</p>
                     </div>
                 </div>
             `;
+            grid.appendChild(card);
         });
-}
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function formatearFecha(fecha) {
+        if (isNaN(fecha.getTime())) return "Fecha inválida";
+
+        const opciones = { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+
+        return fecha.toLocaleDateString('es-ES', opciones);
+    }
 
     function agregarNota() {
         let titulo = document.getElementById("titulo").value.trim();
         let descripcion = document.getElementById("descripcion").value.trim();
         let comentario = document.getElementById("comentario").value.trim();
-    
+
         if (!titulo || !descripcion || !comentario) {
             mostrarAlerta("Todos los campos son obligatorios.", "danger");
             return;
         }
-    
+
         let boton = document.getElementById("btnGuardar");
         boton.disabled = true;
         boton.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Guardando...';
-    
-        // Usar un enfoque diferente para POST ya que JSONP solo funciona con GET
-        // Crear un iframe oculto para enviar el formulario
-        const iframe = document.createElement('iframe');
-        iframe.name = 'post-target';
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-        
-        // Crear un formulario
-        const form = document.createElement('form');
-        form.action = API_URL;
-        form.method = 'POST';
-        form.target = 'post-target';
-        
-        // Añadir los campos del formulario
-        const appendInput = (name, value) => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = name;
-            input.value = value;
-            form.appendChild(input);
-        };
-        
-        appendInput('titulo', titulo);
-        appendInput('descripcion', descripcion);
-        appendInput('comentario', comentario);
-        
-        document.body.appendChild(form);
-        form.submit();
-        
-        // Mostrar mensaje y limpiar después de un tiempo
-        setTimeout(() => {
+
+        fetch('https://script.google.com/macros/s/AKfycbwWWeWh5OkSSOaOaPYljm-bStOoOX_P56vwheV9yf6oEyqonm68zQEIl5HvS1b3HwrI/exec', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                titulo: titulo,
+                descripcion: descripcion,
+                comentario: comentario
+            })
+        })
+        .then(response => response.json())
+        .then(nuevaNota => {
             mostrarAlerta("Nota agregada exitosamente.", "success");
             cargarNotas();
             document.getElementById("titulo").value = "";
             document.getElementById("descripcion").value = "";
             document.getElementById("comentario").value = "";
-            toggleForm();
-            
-            // Limpiar elementos temporales
-            iframe.remove();
-            form.remove();
-            
+
             boton.disabled = false;
             boton.innerHTML = '<i class="fas fa-save"></i> Guardar Nota';
-        }, 2000);
+
+            toggleForm();
+        })
+        .catch(error => {
+            mostrarAlerta("Error al agregar la nota.", "danger");
+            boton.disabled = false;
+            boton.innerHTML = '<i class="fas fa-save"></i> Guardar Nota';
+        });
     }
 
     function mostrarAlerta(mensaje, tipo) {
-        const alertaContainer = document.createElement("div");
-        alertaContainer.classList.add("alerta", tipo);
-        
-        alertaContainer.innerHTML = `
+        const alertaDiv = document.createElement('div');
+        alertaDiv.className = `alerta ${tipo}`;
+        alertaDiv.innerHTML = `
             <div class="alerta-contenido">
                 <i class="fas ${tipo === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
                 <span>${mensaje}</span>
             </div>
         `;
         
-        document.body.appendChild(alertaContainer);
+        document.body.appendChild(alertaDiv);
         
-        // Mostrar con animación
         setTimeout(() => {
-            alertaContainer.style.opacity = "1";
-            alertaContainer.style.transform = "translateY(0)";
+            alertaDiv.style.opacity = '1';
+            alertaDiv.style.transform = 'translateY(0)';
         }, 10);
         
-        // Ocultar después de 5 segundos
         setTimeout(() => {
-            alertaContainer.style.opacity = "0";
-            alertaContainer.style.transform = "translateY(-20px)";
-            
-            // Eliminar del DOM después de la animación
-            setTimeout(() => alertaContainer.remove(), 300);
-        }, 5000);
-    }
-
-    function mostrarNotas(data) {
-        const notesGrid = document.getElementById("notesGrid");
-        
-        if (!data || data.length === 0) {
-            notesGrid.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon"><i class="fas fa-sticky-note"></i></div>
-                    <h3>No hay notas disponibles</h3>
-                    <p>Comienza creando tu primera nota</p>
-                </div>
-            `;
-            return;
-        }
-        
-        notesGrid.innerHTML = ""; // Limpiar el contenedor
-        
-        data.forEach(nota => {
-            const notaEl = document.createElement("div");
-            notaEl.classList.add("note-card");
-            
-            notaEl.innerHTML = `
-                <div class="note-card-header">
-                    <h3 class="note-title">${nota.titulo}</h3>
-                    <div class="note-date">
-                        <i class="far fa-calendar-alt"></i>
-                        ${nota.fecha}
-                    </div>
-                </div>
-                <div class="note-content">
-                    <div class="note-description">
-                        <div class="note-label">Descripción</div>
-                        <p>${nota.descripcion}</p>
-                    </div>
-                    <div class="note-comment">
-                        <div class="note-label">Comentario</div>
-                        <p>${nota.comentario}</p>
-                    </div>
-                </div>
-            `;
-            
-            notesGrid.appendChild(notaEl);
-        });
-    }
-    function toggleForm() {
-        const container = document.getElementById("noteFormContainer");
-        const btnIcon = document.getElementById("btnNuevaNotaIcon");
-        const btnText = document.getElementById("btnNuevaNotaText");
-        
-        container.classList.toggle("active");
-        
-        if (container.classList.contains("active")) {
-            btnIcon.classList.remove("fa-plus");
-            btnIcon.classList.add("fa-minus");
-            btnText.textContent = "Cerrar";
-        } else {
-            btnIcon.classList.remove("fa-minus");
-            btnIcon.classList.add("fa-plus");
-            btnText.textContent = "Nueva Nota";
-        }
+            alertaDiv.style.opacity = '0';
+            alertaDiv.style.transform = 'translateY(-20px)';
+            setTimeout(() => {
+                alertaDiv.remove();
+            }, 300);
+        }, 3000);
     }
 </script>
-
 </head>
 <body onload="cargarNotas()">
     <div class="container">
