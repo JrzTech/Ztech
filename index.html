@@ -3,138 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplicación de Notas</title>
+    <title>Gestor de Notas</title>
     <script>
-        // URL del despliegue de Google Apps Script (deberás reemplazarla con la tuya)
-        const GAS_DEPLOYMENT_URL = 'https://script.google.com/macros/s/AKfycbwfgQrEalY4e14_NLasL07eHS5e898AiZezIjLurgWNg0I5t-ta45DLfDrRshByU2ja/exec';
+        // Reemplaza con tu URL de Google Apps Script
+        const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbz_U5c2RRg5XhA50fcf6jxYXYcA-L_WLpFQtYKjatCyxi5VhmqS-L62FEBrQGdPOuNr/exec';
         
-        // Función para cargar las notas existentes
-        async function loadNotes() {
+        document.addEventListener('DOMContentLoaded', () => {
+            loadNotes();
+            
+            document.getElementById('noteForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                createNote();
+            });
+        });
+        
+        async function createNote() {
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+            const comment = document.getElementById('comment').value;
+            
             try {
-                const response = await fetch(`${GAS_DEPLOYMENT_URL}?action=getNotes`, {
-                    method: 'GET',
-                    mode: 'cors'
+                const response = await fetch(`${BACKEND_URL}?action=createNote`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&comment=${encodeURIComponent(comment)}`
                 });
                 
-                if (!response.ok) {
-                    throw new Error('Error al cargar las notas');
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('noteForm').reset();
+                    loadNotes();
+                } else {
+                    alert('Error al crear la nota: ' + (result.error || 'Desconocido'));
                 }
+            } catch (error) {
+                alert('Error de conexión: ' + error.message);
+            }
+        }
+        
+        async function loadNotes() {
+            try {
+                const response = await fetch(`${BACKEND_URL}?action=getNotes`);
+                const result = await response.json();
                 
-                const data = await response.json();
-                const notesContainer = document.getElementById('notes-container');
-                notesContainer.innerHTML = '';
+                const notesList = document.getElementById('notesList');
+                notesList.innerHTML = '';
                 
-                if (data.notes && data.notes.length > 0) {
-                    data.notes.forEach(note => {
+                if (result.notes && result.notes.length > 0) {
+                    result.notes.forEach(note => {
                         const noteElement = document.createElement('div');
                         noteElement.className = 'note';
                         noteElement.innerHTML = `
-                            <h3>${note.titulo}</h3>
-                            <p>${note.descripcion}</p>
-                            <p><small>Comentario: ${note.comentario}</small></p>
-                            <p><small>Fecha: ${note.fecha}</small></p>
+                            <h3>${note.title}</h3>
+                            <p>${note.description}</p>
+                            <small>${note.comment}</small>
+                            <div class="note-footer">
+                                <span>${new Date(note.date).toLocaleString()}</span>
+                                <button onclick="deleteNote('${note.id}')">Eliminar</button>
+                            </div>
                         `;
-                        notesContainer.appendChild(noteElement);
+                        notesList.appendChild(noteElement);
                     });
                 } else {
-                    notesContainer.innerHTML = '<p>No hay notas disponibles.</p>';
+                    notesList.innerHTML = '<p>No hay notas aún.</p>';
                 }
             } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('notes-container').innerHTML = 
-                    `<p>Error al cargar las notas: ${error.message}</p>`;
+                alert('Error al cargar notas: ' + error.message);
             }
         }
         
-        // Función para guardar una nueva nota
-        async function saveNote(event) {
-            event.preventDefault();
-            
-            const titulo = document.getElementById('titulo').value;
-            const descripcion = document.getElementById('descripcion').value;
-            const comentario = document.getElementById('comentario').value;
-            
-            // Validación básica
-            if (!titulo || !descripcion) {
-                alert('Por favor, completa al menos el título y la descripción.');
-                return;
-            }
-            
-            // Preparar los datos para enviar
-            const formData = new FormData();
-            formData.append('action', 'addNote');
-            formData.append('titulo', titulo);
-            formData.append('descripcion', descripcion);
-            formData.append('comentario', comentario);
-            formData.append('fecha', new Date().toISOString());
-            
-            try {
-                // Mostrar mensaje de carga
-                document.getElementById('status').textContent = 'Guardando nota...';
-                
-                // Usamos sendBeacon para evitar problemas de CORS con POST
-                // Esta es una técnica que funciona bien con GAS
-                const queryString = new URLSearchParams(formData).toString();
-                const success = navigator.sendBeacon(`${GAS_DEPLOYMENT_URL}?${queryString}`);
-                
-                if (success) {
-                    // Limpiar el formulario
-                    document.getElementById('note-form').reset();
-                    document.getElementById('status').textContent = 'Nota guardada correctamente.';
+        async function deleteNote(id) {
+            if (confirm('¿Estás seguro de eliminar esta nota?')) {
+                try {
+                    const response = await fetch(`${BACKEND_URL}?action=deleteNote&id=${id}`);
+                    const result = await response.json();
                     
-                    // Esperar un momento antes de recargar las notas (dar tiempo al GAS)
-                    setTimeout(() => {
+                    if (result.success) {
                         loadNotes();
-                        document.getElementById('status').textContent = '';
-                    }, 1000);
-                } else {
-                    throw new Error('Error al enviar la nota');
+                    } else {
+                        alert('Error al eliminar la nota');
+                    }
+                } catch (error) {
+                    alert('Error de conexión: ' + error.message);
                 }
-            } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('status').textContent = 
-                    `Error al guardar la nota: ${error.message}`;
             }
         }
-        
-        // Inicializar la aplicación cuando se cargue la página
-        window.onload = function() {
-            // Cargar notas existentes
-            loadNotes();
-            
-            // Configurar el evento para el formulario
-            document.getElementById('note-form').addEventListener('submit', saveNote);
-        };
     </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #noteForm {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input, textarea {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .note {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .note-footer {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            color: #666;
+        }
+    </style>
 </head>
 <body>
-    <h1>Mis Notas</h1>
+    <h1>Gestor de Notas</h1>
     
-    <div id="new-note">
-        <h2>Nueva Nota</h2>
-        <form id="note-form">
-            <div>
-                <label for="titulo">Título:</label>
-                <input type="text" id="titulo" name="titulo" required>
-            </div>
-            <div>
-                <label for="descripcion">Descripción:</label>
-                <textarea id="descripcion" name="descripcion" rows="4" required></textarea>
-            </div>
-            <div>
-                <label for="comentario">Comentario:</label>
-                <textarea id="comentario" name="comentario" rows="2"></textarea>
-            </div>
-            <button type="submit">Guardar Nota</button>
-        </form>
-        <p id="status"></p>
-    </div>
+    <form id="noteForm">
+        <input type="text" id="title" placeholder="Título" required>
+        <textarea id="description" placeholder="Descripción" rows="3" required></textarea>
+        <textarea id="comment" placeholder="Comentario" rows="2"></textarea>
+        <button type="submit">Guardar Nota</button>
+    </form>
     
-    <div id="notes-list">
-        <h2>Notas Guardadas</h2>
-        <div id="notes-container">
-            <p>Cargando notas...</p>
-        </div>
+    <h2>Tus Notas</h2>
+    <div id="notesList">
+        <p>Cargando notas...</p>
     </div>
 </body>
 </html>
