@@ -356,8 +356,8 @@
         }
     </style>
     <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxVthjPE0zKk_C7JYp162CACXGPXSDfD-ENUihk3O4C5sxRV-g7CwKsNPYaQ8GEsr1Z/exec"; // ← Pega aquí tu URL real
-        
+    const API_URL = "https://script.google.com/macros/s/AKfycbxVthjPE0zKk_C7JYp162CACXGPXSDfD-ENUihk3O4C5sxRV-g7CwKsNPYaQ8GEsr1Z/exec"; // URL del backend
+    
     function cargarNotas() {
         document.getElementById("notesGrid").innerHTML = `
             <div class="loading">
@@ -366,7 +366,10 @@
             </div>
         `;
 
-        fetch(`${API_URL}?accion=obtenerNotas`)
+        fetch(`${API_URL}?accion=obtenerNotas`, {
+            method: 'GET',
+            mode: 'cors' // Asegúrate de que esté configurado en 'cors'
+        })
             .then(response => response.json())
             .then(data => mostrarNotas(data))
             .catch(error => {
@@ -394,13 +397,16 @@
         fetch(API_URL, {
             method: "POST",
             body: JSON.stringify(datos),
-            headers: { "Content-Type": "application/json" }
+            headers: { 
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*" // Aunque no es estrictamente necesario, se incluye por precaución
+            }
         })
         .then(res => res.json())
         .then(respuesta => {
             if (respuesta.success) {
                 mostrarAlerta("Nota agregada exitosamente.", "success");
-                cargarNotas();
+                cargarNotas(); // Recargar las notas después de agregar una nueva
                 document.getElementById("titulo").value = "";
                 document.getElementById("descripcion").value = "";
                 document.getElementById("comentario").value = "";
@@ -418,7 +424,34 @@
             boton.innerHTML = '<i class="fas fa-save"></i> Guardar Nota';
         });
     }
+
+    function mostrarAlerta(mensaje, tipo) {
+        const alerta = document.createElement("div");
+        alerta.classList.add("alert", `alert-${tipo}`);
+        alerta.textContent = mensaje;
+        document.getElementById("alertContainer").appendChild(alerta);
+        setTimeout(() => alerta.remove(), 5000); // Eliminar alerta después de 5 segundos
+    }
+
+    function mostrarNotas(data) {
+        // Implementa cómo mostrar las notas en el front
+        // Ejemplo de cómo podrías mostrar los datos
+        const notesGrid = document.getElementById("notesGrid");
+        notesGrid.innerHTML = ""; // Limpiar el contenedor
+        data.forEach(nota => {
+            const notaDiv = document.createElement("div");
+            notaDiv.classList.add("note");
+            notaDiv.innerHTML = `
+                <h4>${nota.titulo}</h4>
+                <p>${nota.descripcion}</p>
+                <p>${nota.comentario}</p>
+                <small>${nota.fecha}</small>
+            `;
+            notesGrid.appendChild(notaDiv);
+        });
+    }
 </script>
+
 </head>
 <body onload="cargarNotas()">
     <div class="container">
