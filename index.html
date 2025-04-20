@@ -258,6 +258,23 @@
             font-weight: 600;
         }
         
+        .note-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+        
+        .btn-delete {
+            background-color: var(--danger) !important;
+            padding: 8px 12px !important;
+            width: auto !important;
+            font-size: 0.9rem !important;
+        }
+        
+        .btn-delete:hover {
+            background-color: #ff4757 !important;
+        }
+        
         .empty-state {
             grid-column: 1 / -1;
             padding: 40px;
@@ -510,6 +527,11 @@
                             <p>${escapeHtml(nota.comment || '')}</p>
                         </div>
                     </div>
+                    <div class="note-actions">
+                        <button class="btn-delete" onclick="eliminarNota('${nota.id}')">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </button>
+                    </div>
                 `;
                 grid.appendChild(card);
             });
@@ -555,6 +577,26 @@
             } finally {
                 boton.disabled = false;
                 boton.innerHTML = '<i class="fas fa-save"></i> Guardar Nota';
+            }
+        }
+
+        async function eliminarNota(id) {
+            if (!confirm('¿Estás seguro de que quieres eliminar esta nota?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BACKEND_URL}?action=deleteNote&id=${id}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    mostrarAlerta("Nota eliminada correctamente", "success");
+                    cargarNotas();
+                } else {
+                    mostrarAlerta("Error al eliminar la nota: " + (result.error || 'Desconocido'), "danger");
+                }
+            } catch (error) {
+                mostrarAlerta("Error de conexión: " + error.message, "danger");
             }
         }
 
