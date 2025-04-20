@@ -366,12 +366,16 @@
             </div>
         `;
     
+        // Añadir un log para depuración
+        console.log("Iniciando carga de notas desde:", API_URL);
+    
         // Usar JSONP para evitar problemas de CORS con Google Apps Script
         const script = document.createElement('script');
         const callbackName = 'jsonpCallback_' + new Date().getTime();
         
         // Definir una función global que procesará la respuesta
         window[callbackName] = function(data) {
+            console.log("Datos recibidos vía JSONP:", data);
             delete window[callbackName]; // Limpiar después de usar
             document.getElementById('jsonpScript')?.remove();
             mostrarNotas(data);
@@ -379,6 +383,19 @@
         
         script.id = 'jsonpScript';
         script.src = `${API_URL}?accion=obtenerNotas&callback=${callbackName}`;
+        
+        // Añadir un manejador de errores para el script
+        script.onerror = function() {
+            console.error("Error al cargar el script JSONP");
+            document.getElementById("notesGrid").innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <h3>Error de conexión</h3>
+                    <p>No se pudo conectar con el servidor de notas</p>
+                </div>
+            `;
+        };
+        
         document.body.appendChild(script);
     }
 
